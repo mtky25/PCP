@@ -1,4 +1,5 @@
 import pandas as pd
+from datetime import datetime
 
 def get_analistas(df_base,nucleo=None):
     if nucleo is not None:
@@ -37,6 +38,7 @@ def generate_pcp(df_base,nucleo=None,membro=None):
     
     df_base['Início Real'] = pd.to_datetime(df_base['Início Real'], errors='coerce')
     df_base['Fim Previsto'] = pd.to_datetime(df_base['Fim Previsto'], errors='coerce')
+    df_base['Fim Real'] = pd.to_datetime(df_base['Fim Real'], errors='coerce')
     start_date = df_base['Início Real'].min()
     end_date = df_base['Fim Previsto'].max()
 
@@ -51,13 +53,14 @@ def generate_pcp(df_base,nucleo=None,membro=None):
 
     for _, project in executing_projects.iterrows():
         start = project['Início Real']
-        
-        if project['Status'] is 'Executando' or project['Status'] is 'Concluindo Pendências':
-            end = project['Fim Previsto']
-        elif project['Status'] is 'Concluído':
+        if project['Status'] == 'Concluído':
             end = project['Fim Real']
         else:
-            end = project['Fim Previsto']
+            if project['Fim Previsto'] < pd.Timestamp.now().normalize():
+                end = pd.Timestamp.now().normalize()
+            else:
+                end = project['Fim Previsto']
+
         project_name = project['Projeto']
         if pd.notna(start) and pd.notna(end) and end >= start:
             involved_analysts = project[analyst_columns].dropna().unique()
